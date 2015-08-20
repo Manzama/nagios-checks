@@ -1,0 +1,1 @@
+echo "CHECK_PGSTATS OK: Nothing to report. | $(/home/manzama/nagios/external/check_postgres-2.21.0/check_postgres_dbstats -db manzama_prod | tr ':' '=' | sed 's/dbname=manzama_prod//')"

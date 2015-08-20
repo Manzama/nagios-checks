@@ -1,0 +1,12 @@
+[submodule "external/check_proc_mem"]
+	path = external/check_proc_mem
+	url = https://github.com/DennyZhang/check_proc_mem
+[submodule "external/mab-nagios-plugins"]
+	path = external/mab-nagios-plugins
+	url = https://github.com/chaomodus/mab-nagios-plugins
+[submodule "external/nguttman-nagios-checks"]
+	path = external/nguttman-nagios-checks
+	url = https://github.com/nguttman/Nagios-Checks
+[submodule "external/nagios-plugins-rabbitmq"]
+	path = external/nagios-plugins-rabbitmq
+	url = https://github.com/jamesc/nagios-plugins-rabbitmq/

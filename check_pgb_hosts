@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+import sys
+import os
+import re
+import subprocess
+
+ipextract = re.compile(r'.*->(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}).*')
+
+phcrit = 100
+phwarn = 50
+
+totalcrit = 850
+totalwarn = 600
+
+total = 0
+perhost = {}
+
+try:
+    lsof = subprocess.check_output('lsof -n|grep 6432 | grep TCP', shell=True)
+except subprocess.CalledProcessError:
+    print "PGB_HOSTS CRITICAL: no open 6432 ports!"
+    sys.exit(3)
+
+for row in lsof.split('\n'):
+    m = ipextract.match(row)
+    if m:
+        ip = m.group(1)
+        perhost.setdefault(ip, 0)
+        perhost[ip] += 1
+        total+=1
+
+perfdatatempl="'h:{hostip}'={cnt};{phwarn};{phcrit};0"
+
+critmsg = ''
+warnmsg = ''
+perfmsg = 'pgb_open={cnt};{totalwarn};{totalcrit};0'.format(cnt=total, totalwarn=totalwarn, totalcrit=totalcrit)
+for ip in perhost:
+    perfmsg += ' ' + perfdatatempl.format(hostip=ip, cnt=perhost[ip], phcrit=phcrit, phwarn=phwarn)
+    msg = ' {host} ({cnt})'.format(host=ip, cnt=perhost[ip])
+    if perhost[ip] >= phcrit:
+        critmsg += msg
+    elif perhost[ip] >= phwarn:
+        warnmsg += msg
+
+if total >= totalcrit:
+    critmsg = "Critical Total Connections ({})".format(total) + critmsg
+elif total >= totalwarn:
+    warnmsg = "Warning Total Connections ({})".format(total) + warnmsg
+
+
+ret = 0
+condition = 'OK'
+msg = 'Connections: {}'.format(total)
+if critmsg:
+    condition = 'CRITICAL'
+    msg = critmsg
+    ret = 2
+elif warnmsg:
+    coniditon = 'WARNING'
+    msg = warnmsg
+    ret = 1
+
+print "PGB_HOSTS {condition}: {msg} | {perfdata}".format(condition=condition, msg=msg, perfdata=perfmsg)
+sys.exit(ret)

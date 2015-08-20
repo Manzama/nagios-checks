@@ -1,0 +1,20 @@
+#!/bin/bash
+# meant to be run on a client machine to see outgoing connections
+
+WARN=100
+CRITICAL=200
+
+connections=$(sudo lsof |grep TCP | grep 6432 |wc -l)
+
+if [ $connections -lt $WARN ]; then
+   echo "PGB_OPEN OK: $connections open connections | pgb_open=$connections;$WARN;$CRITICAL;0"
+   exit 0
+fi
+
+if [ $connections -lt $CRITICAL ]; then
+   echo "PGB_OPEN WARNING: $connections open connections | pgb_open=$connections;$WARN;$CRITICAL;0"
+   exit 1
+fi
+
+echo "PGB_OPEN CRITICAL: $connections open connections | pgb_open=$connections;$WARN;$CRITICAL;0"
+exit 2
