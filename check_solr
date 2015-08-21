@@ -1,0 +1,134 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+import libxml2
+import urllib2
+
+STATUS_OK = 0
+STATUS_WARNING = 1
+STATUS_CRITICAL = 2
+
+STATSURL='/solr/admin/mbeans/?stats=true'
+PINGURL='/solr/admin/ping'
+
+TEMPLATE='SOLR {status}: {message} | {perfdata}'
+
+selectstats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='QUERYHANDLER']/lst[@name='/select']/lst[@name='stats']/*"
+updatestats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='QUERYHANDLER']/lst[@name='/update']/lst[@name='stats']/*"
+pingstats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='QUERYHANDLER']/lst[@name='/admin/ping']/lst[@name='stats']/*"
+pingstatus_xpath = "//response/str[@name='status']"
+
+def fetch_url(host, port, path):
+      url = 'http://{host}:{port}{path}'.format(host=host, port=port, path=path)
+      try:
+            u = urllib2.urlopen(url)
+      except urllib2.URLError:
+            raise
+      except urllib2.HTTPError, instance:
+            return instance.code, instance.reason
+
+      result = u.read()
+      u.close()
+      return 200, result
+
+def xmlnodes_to_dict(xmlnodes):
+      ret = {}
+      idx = 0
+      for item in xmlnodes:
+            idx += 1
+            name = str(idx)
+            attrib = item.hasProp('name')
+            if attrib:
+                  name = attrib.getContent()
+
+            value = item.getContent()
+            if item.name in ('long','int','float','double'):
+                  value = float(value)
+            elif item.name == 'bool':
+                  if value == 'true':
+                        value = True
+                  else:
+                        value = False
+            elif item.name == 'none':
+                  value = None
+
+            ret[name] = value
+      return ret
+
+parser = argparse.ArgumentParser(description='Check the status of a Solr server.')
+parser.add_argument('-m', dest='module',
+                    action='store',
+                    choices=['ping','select','update','pingstats'],
+                    default='ping',
+                    help='choose a module (default ping)')
+parser.add_argument('--host', dest='host',
+                    action='store',
+                    default='localhost',
+                    help='Server to connect to.')
+parser.add_argument('--port', dest='port',
+                    action='store',
+                    default='8080',
+                    type=int,
+                    help='Server port to connect to.')
+args = parser.parse_args()
+
+solrhost=args.host
+solrport=args.port
+
+xpath = {'ping': pingstatus_xpath,
+         'select': selectstats_xpath,
+         'update': updatestats_xpath,
+         'pingstats': pingstats_xpath}[args.module]
+urlpath = STATSURL
+if args.module == 'ping':
+      urlpath = PINGURL
+
+try:
+      code, content = fetch_url(solrhost, solrport, urlpath)
+except Exception, instance:
+      print TEMPLATE.format(status='CRITICAL',
+                            message="Failed to access SOLR. Exception: "+repr(instance),
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+if code != 200:
+      print TEMPLATE.format(status='CRITICAL',
+                            message="Error from Tomcat: "+str(code)+' '+content,
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+try:
+      x = libxml2.parseDoc(content)
+except libxml2.libxmlError, instance:
+      print TEMPLATE.format(status='CRITICAL',
+                            message="Error parsing XML: "+str(instance),
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+
+ctx = x.xpathNewContext()
+statustree = ctx.xpathEval(xpath)
+statusvalues = xmlnodes_to_dict(statustree)
+
+outstatus = 'OK'
+outexit = 0
+outperf = ''
+outmessage = ''
+
+if args.module == 'ping':
+      if statusvalues['status'] == 'OK':
+            outmessage = 'ping ok.'
+      else:
+            outstatus = 'WARNING'
+            outexit = STATUS_WARNING
+            outmessage = 'ping ??? '+statusvalues['status']
+else:
+      outmessage = 'status for '+args.module
+      for item in statusvalues:
+            outperf += "'{label}'='{value}'; ".format(label=item, value=statusvalues[item])
+
+print TEMPLATE.format(status=outstatus,
+                      message=outmessage,
+                      perfdata=outperf)
+sys.exit(outexit)

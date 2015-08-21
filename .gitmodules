@@ -10,3 +10,6 @@
 [submodule "external/nagios-plugins-rabbitmq"]
 	path = external/nagios-plugins-rabbitmq
 	url = https://github.com/jamesc/nagios-plugins-rabbitmq/
+[submodule "external/zookeeper-monitoring"]
+	path = external/zookeeper-monitoring
+	url = https://github.com/andreisavu/zookeeper-monitoring
