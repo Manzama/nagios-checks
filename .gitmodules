@@ -13,3 +13,6 @@
 [submodule "external/zookeeper-monitoring"]
 	path = external/zookeeper-monitoring
 	url = https://github.com/andreisavu/zookeeper-monitoring
+[submodule "external/justintime-nagios-plugins"]
+	path = external/justintime-nagios-plugins
+	url = https://github.com/justintime/nagios-plugins/
