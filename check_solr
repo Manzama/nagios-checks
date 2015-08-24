@@ -126,7 +126,7 @@ if args.module == 'ping':
 else:
       outmessage = 'status for '+args.module
       for item in statusvalues:
-            outperf += "'{label}'='{value}'; ".format(label=item, value=statusvalues[item])
+            outperf += "'{label}'={value} ".format(label=item, value=statusvalues[item])
 
 print TEMPLATE.format(status=outstatus,
                       message=outmessage,
