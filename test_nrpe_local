@@ -20,7 +20,7 @@ while getopts ":v" opt; do
 done
 
 grep '=' $PTH | cut -d'=' -f'2-' | while read cmd; do
-    if [ $VERBOSE eq '1' ]; then
+    if [ $VERBOSE == '1' ]; then
 	eval $cmd
     else
 	eval $cmd > /dev/null;
