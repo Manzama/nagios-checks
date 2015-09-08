@@ -19,3 +19,6 @@
 [submodule "external/check_postgres"]
 	path = external/check_postgres
 	url = https://github.com/bucardo/check_postgres
+[submodule "external/check_ngixnx_status"]
+	path = external/check_ngixnx_status
+	url = https://github.com/regilero/check_nginx_status
