@@ -9,8 +9,9 @@ STATUS_OK = 0
 STATUS_WARNING = 1
 STATUS_CRITICAL = 2
 
-STATSURL='/solr/admin/mbeans/?stats=true'
-PINGURL='/solr/admin/ping'
+URLROOT_DEFAULT='/solr'
+STATSURL='/admin/mbeans/?stats=true'
+PINGURL='/admin/ping'
 
 TEMPLATE='SOLR {status}: {message} | {perfdata}'
 
@@ -71,6 +72,10 @@ parser.add_argument('--port', dest='port',
                     default='8080',
                     type=int,
                     help='Server port to connect to.')
+parser.add_argument('--path', dest='path',
+                    action='store',
+                    default=URLROOT_DEFAULT,
+                    help="Root of solr index stats pages.")
 args = parser.parse_args()
 
 solrhost=args.host
@@ -84,6 +89,7 @@ urlpath = STATSURL
 if args.module == 'ping':
       urlpath = PINGURL
 
+urlpath = args.path + urlpath
 try:
       code, content = fetch_url(solrhost, solrport, urlpath)
 except Exception, instance:
