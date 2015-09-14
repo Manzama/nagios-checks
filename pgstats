@@ -2,9 +2,9 @@
 
 DBSTATS_PATH="$(dirname $0)/external/check_postgres/check_postgres.pl --action=dbstats"
 
-RES=$($DBSTATS_PATH -db manzama_prod)
+RES=$($DBSTATS_PATH "$@")
 if [ $? = 0 ]; then
-    echo "CHECK_PGSTATS OK: Nothing to report. | (echo $RES  | tr ':' '=' | sed 's/dbname=manzama_prod//')"
+    echo "CHECK_PGSTATS OK: Nothing to report. | $(echo $RES  | tr ':' '=' | sed 's/dbname=manzama_prod//')"
     exit 0
 else
     echo "CHECK_PGSTATS CRITICAL: Cannot get stats. | "
