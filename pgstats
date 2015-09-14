@@ -1,1 +1,12 @@
-echo "CHECK_PGSTATS OK: Nothing to report. | $(/home/manzama/nagios/external/check_postgres-2.21.0/check_postgres_dbstats -db manzama_prod | tr ':' '=' | sed 's/dbname=manzama_prod//')"
+#!/bin/bash
+
+DBSTATS_PATH="$(dirname $0)/external/check_postgres/check_postgres.pl --action=dbstats"
+
+RES=$($DBSTATS_PATH -db manzama_prod)
+if [ $? = 0 ]; then
+    echo "CHECK_PGSTATS OK: Nothing to report. | (echo $RES  | tr ':' '=' | sed 's/dbname=manzama_prod//')"
+    exit 0
+else
+    echo "CHECK_PGSTATS CRITICAL: Cannot get stats. | "
+    exit 2
+fi
