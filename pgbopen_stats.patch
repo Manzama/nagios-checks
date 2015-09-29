@@ -1,0 +1,21 @@
+--- check_postgres.pl	2015-09-28 09:56:21.700870241 -0700
++++ check_postgres_patch.pl	2015-09-28 09:55:50.108353706 -0700
+@@ -6095,6 +5798,7 @@
+     $db = $info->{db}[0];
+     my $output = $db->{slurp};
+     my $gotone = 0;
++    $db->{perf} = "";
+     for my $i (@$output) {
+         next if skip_item($i->{database});
+         my $msg = "$i->{database}=$i->{$stat}";
+@@ -6104,6 +5808,10 @@
+             $statsmsg{$i->{database}} = msg('pgbouncer-pool', $i->{database}, $stat, $i->{$stat});
+             next;
+         }
++        $db->{perf} .= sprintf ' %s=%s;;;',
++                      perfname($i->{database}), $i->{$stat};
++        print $db->{perf} . "\n";
++
+ 
+         if ($critical and $i->{$stat} >= $critical) {
+             add_critical $msg;
