@@ -22,3 +22,6 @@
 [submodule "external/check_ngixnx_status"]
 	path = external/check_ngixnx_status
 	url = https://github.com/regilero/check_nginx_status
+[submodule "external/haproxy-nagios-scripts"]
+	path = external/haproxy-nagios-scripts
+	url = https://github.com/tatref/nagios-scripts
