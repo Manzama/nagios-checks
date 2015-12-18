@@ -11,7 +11,7 @@ STATUS_OK = 0
 STATUS_WARNING = 1
 STATUS_CRITICAL = 2
 JAVATSFMT = '%Y-%m-%dT%H:%M:%S.%f+0000'
-PAUSETIMERE = re.compile('\d+.\d+: Total time for which application threads were stopped: (\d+.\d+) seconds$')
+PAUSETIMERE = re.compile('\d+.\d+: Total time for which application threads were stopped: (\d+.\d+) seconds.*')
 TEMPLATE='JAVAGC {status}: {message} | {perfdata}'
 DEFAULTLOG='/var/log/tomcat7/catalina.out'
 
