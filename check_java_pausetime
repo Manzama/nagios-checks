@@ -10,6 +10,7 @@ import sys
 STATUS_OK = 0
 STATUS_WARNING = 1
 STATUS_CRITICAL = 2
+STATUS_UNKNOWN = 3
 JAVATSFMT = '%Y-%m-%dT%H:%M:%S.%f+0000'
 PAUSETIMERE = re.compile('\d+.\d+: Total time for which application threads were stopped: (\d+.\d+) seconds.*')
 TEMPLATE='JAVAGC {status}: {message} | {perfdata}'
@@ -51,10 +52,10 @@ pausetime_min = Decimal('0.0000000')
 pausetimes = []
 
 if not os.access(args.logfile, os.F_OK):
-    print TEMPLATE.format(status='CRITICAL',
+    print TEMPLATE.format(status='UNKNOWN',
                           message='Logfile "'+args.logfile+'" could not be opened.',
                           perfdata='')
-    sys.exit(STATUS_CRITICAL)
+    sys.exit(STATUS_UNKNOWN)
 
 with os.popen('tac '+args.logfile) as inlog:
     for line in inlog:
