@@ -1,0 +1,217 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+import libxml2
+import urllib2
+
+#
+# TODO:
+# allow data about shards to be filtered
+#
+
+STATUS_OK = 0
+STATUS_WARNING = 1
+STATUS_CRITICAL = 2
+
+URLROOT_DEFAULT='/solr'
+COLLECTIONS_URL = '/admin/collections?action=CLUSTERSTATUS'
+
+STATE_CODES={'active': 3, 'recovering': 2, 'down': 1, 'recovery_failed': 0, 'unknown': -1}
+
+TEMPLATE='SOLR CLUSTER {status}: {message} | {perfdata}'
+
+def fetch_url(host, port, path):
+      url = 'http://{host}:{port}{path}'.format(host=host, port=port, path=path)
+      try:
+            u = urllib2.urlopen(url)
+      except urllib2.URLError:
+            raise
+      except urllib2.HTTPError, instance:
+            return instance.code, instance.reason
+
+      # u = file('cluster.xml', 'r')
+      result = u.read()
+      u.close()
+      return 200, result
+
+def xmlnode_get_direct_children(node, filt=False):
+      outp = []
+      for n in node.children:
+            if n.parent == node:
+                  if filt and n.name == 'text':
+                        continue
+                  outp.append(n)
+      return outp
+
+def xmlnodes_to_dict(xmlnodes):
+      ret = {}
+      idx = 0
+      for item in xmlnodes:
+            idx += 1
+            name = str(idx)
+            attrib = item.hasProp('name')
+            if attrib:
+                  name = attrib.getContent()
+            value = item.getContent()
+            if item.name in ('long','int','float','double'):
+                  value = float(value)
+            elif item.name == 'bool':
+                  if value == 'true':
+                        value = True
+                  else:
+                        value = False
+            elif item.name == 'none':
+                  value = None
+            elif item.name == 'lst':
+                  value = xmlnodes_to_dict(xmlnode_get_direct_children(item, True))
+            ret[name] = value
+      return ret
+
+parser = argparse.ArgumentParser(description='Check the status of a Solr server.')
+parser.add_argument('--host', dest='host',
+                    action='store',
+                    default='localhost',
+                    help='Server to connect to.')
+parser.add_argument('--port', dest='port',
+                    action='store',
+                    default='8080',
+                    type=int,
+                    help='Server port to connect to.')
+parser.add_argument('--path', dest='path',
+                    action='store',
+                    default=URLROOT_DEFAULT,
+                    help="Root of solr index stats pages.")
+parser.add_argument('-c', dest='crit',
+                    action='store',
+                    type=int,
+                    default=0,
+                    help="Critical minimal count for operational replicas in a collection.")
+parser.add_argument('-w', dest='warn',
+                    action='store',
+                    type=int,
+                    default=1,
+                    help="Warning minimal count for operational replicas in a collection.")
+
+parser.add_argument('collections', metavar='C', type=str, nargs='*', help="A list of expected collections.")
+args = parser.parse_args()
+
+solrhost=args.host
+solrport=args.port
+
+urlpath = COLLECTIONS_URL
+
+urlpath = args.path + urlpath
+try:
+      code, content = fetch_url(solrhost, solrport, urlpath)
+except Exception, instance:
+      print TEMPLATE.format(status='CRITICAL',
+                            message="Failed to access SOLR. Exception: "+repr(instance),
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+if code != 200:
+      print TEMPLATE.format(status='CRITICAL',
+                            message="Error from Tomcat: "+str(code)+' '+content,
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+try:
+      x = libxml2.parseDoc(content)
+except libxml2.libxmlError, instance:
+      print TEMPLATE.format(status='CRITICAL',
+                            message="Error parsing XML: "+str(instance),
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+xpath = "//response/*"
+ctx = x.xpathNewContext()
+statustree = ctx.xpathEval(xpath)
+statusvalues = xmlnodes_to_dict(statustree)
+
+if 'responseHeader' not in statusvalues or 'status' not in statusvalues['responseHeader'] or statusvalues['responseHeader']['status'] != 0:
+      print TEMPLATE.format(status='CRITICAL',
+                            message='No expected responseHeader in return: '+str(statusvalues),
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+if 'cluster' not in statusvalues or 'collections' not in statusvalues['cluster']:
+      print TEMPLATE.format(status='CRITICAL',
+                            message='No collections in return: '+str(statusvalues),
+                            perfdata='')
+      sys.exit(STATUS_CRITICAL)
+
+perfdata = {}
+collectioncounts = {}
+wantcollections = set(args.collections)
+for collection in statusvalues['cluster']['collections']:
+      coldict = statusvalues['cluster']['collections'][collection]
+      if collection in wantcollections:
+            wantcollections.remove(collection)
+
+      for key in coldict.keys():
+            if key in ('shards', 'router'): continue
+            perfdata[collection+'.'+key] = coldict[key]
+      for shard in coldict['shards']:
+            for key in coldict['shards'][shard]:
+                  if key in ('replicas'):
+                        continue
+                  perfdata[collection+'.'+shard+'.'+key] = coldict['shards'][shard][key]
+            leader = ''
+            state_count = {}
+            for rep in coldict['shards'][shard]['replicas']:
+                  state = coldict['shards'][shard]['replicas'][rep]['state']
+                  perfdata[collection+'.'+shard+'.'+rep+'.state'] = state
+                  if state in STATE_CODES:
+                        state_code = STATE_CODES[state]
+                  else:
+                        state_code = STATE_CODES['unkwown']
+                  perfdata[collection+'.'+shard+'.'+rep+'.state_code'] = state_code
+                  state_count.setdefault(state, 0)
+                  state_count[state] += 1
+                  state_count
+                  if 'leader' in coldict['shards'][shard]['replicas'][rep]:
+                        leader = rep
+
+            perfdata[collection+'.'+shard+'.leader'] = leader
+            for state in state_count:
+                  perfdata[collection+'.'+shard+'.'+state] = state_count[state]
+                  if state == 'active':
+                        collectioncounts[collection+'.'+shard+'.'+state] = state_count[state]
+
+
+keys = list(perfdata.keys())
+keys.sort()
+
+outperf = ' '.join([x+'='+str(perfdata[x]) for x in keys])
+
+outstatus = 'OK'
+outexit = 0
+outmessage = ''
+outmessage = 'status for solr cloud'
+
+if len(wantcollections):
+      outstatus = 'CRITICAL'
+      outexit = STATUS_CRITICAL
+      outmessage = 'Not all collections seen! Missing collections: '+(' '.join(wantcollections))
+
+critcounts = []
+warncounts = []
+for count in collectioncounts:
+      if collectioncounts[count] <= args.crit:
+            outstatus = 'CRITICAL'
+            outexit = STATUS_CRITICAL
+            critcounts.append(count)
+      elif collectioncounts <= args.warn and outstatus != STATUS_CRITICAL:
+            outstatus = 'WARNING'
+            outexit = STATUS_WARNING
+            warncounts.append(count)
+if outexit == STATUS_CRITICAL and critcounts:
+      outmessage = 'Some shards are below critical number of replicas: '+(', '.join(critcounts))
+elif outexit == STATUS_WARNING and warncounts:
+      outmessage = 'Some shards are below warning number of replicas: '+(', '.join(warncounts))
+
+print TEMPLATE.format(status=outstatus,
+                      message=outmessage,
+                      perfdata=outperf)
+sys.exit(outexit)
