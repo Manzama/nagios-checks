@@ -1,6 +1,3 @@
-[submodule "external/check_proc_mem"]
-	path = external/check_proc_mem
-	url = https://github.com/DennyZhang/check_proc_mem
 [submodule "external/mab-nagios-plugins"]
 	path = external/mab-nagios-plugins
 	url = https://github.com/chaomodus/mab-nagios-plugins
