@@ -149,31 +149,33 @@ for collection in statusvalues['cluster']['collections']:
       if collection in wantcollections:
             wantcollections.remove(collection)
 
-      for key in coldict.keys():
-            if key in ('shards', 'router'): continue
-            perfdata[collection+'.'+key] = coldict[key]
+      ## generic shard information
+      # for key in coldict.keys():
+      #       if key in ('shards', 'router'): continue
+      #       perfdata[collection+'.'+key] = coldict[key]
       for shard in coldict['shards']:
             for key in coldict['shards'][shard]:
-                  if key in ('replicas'):
+                  if key in ('replicas', 'range'):
                         continue
+                  # pick up active status
                   perfdata[collection+'.'+shard+'.'+key] = coldict['shards'][shard][key]
             leader = ''
             state_count = {}
             for rep in coldict['shards'][shard]['replicas']:
                   state = coldict['shards'][shard]['replicas'][rep]['state']
-                  perfdata[collection+'.'+shard+'.'+rep+'.state'] = state
+                  # perfdata[collection+'.'+shard+'.'+rep+'.state'] = state
                   if state in STATE_CODES:
                         state_code = STATE_CODES[state]
                   else:
                         state_code = STATE_CODES['unkwown']
-                  perfdata[collection+'.'+shard+'.'+rep+'.state_code'] = state_code
+                  # perfdata[collection+'.'+shard+'.'+rep+'.state_code'] = state_code
                   state_count.setdefault(state, 0)
                   state_count[state] += 1
                   state_count
                   if 'leader' in coldict['shards'][shard]['replicas'][rep]:
                         leader = rep
 
-            perfdata[collection+'.'+shard+'.leader'] = leader
+            # perfdata[collection+'.'+shard+'.leader'] = leader
             for state in state_count:
                   perfdata[collection+'.'+shard+'.'+state] = state_count[state]
                   if state == 'active':
