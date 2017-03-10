@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Written by chaomodus 2017-03-09
 
 import redis
 import argparse
