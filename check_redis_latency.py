@@ -44,12 +44,12 @@ averagetime = totaltime / args.samples
 perfdata="samples={} totaltime={:.4} averagetime={:.4}".format(args.samples, totaltime, averagetime)
 
 if averagetime >= args.crit:
-    print('CRITICAL REDIS ping time | {}'.format(perfdata))
+    print('REDIS LATENCY CRITICAL ping time {} ms | {}'.format(averagetime, perfdata))
     sys.exit(STATUS_CRITICAL)
 
 if averagetime >= args.warn:
-    print('WARNING REDIS ping time | {}'.format(perfdata))
+    print('REDIS LATENCY WARNING ping time {} ms | {}'.format(averagetime, perfdata))
     sys.exit(STATUS_WARNING)
 
-print('OK REDIS | {}'.format(perfdata))
+print('REDIS LATENCY OK ping time {} ms | {}'.format(averagetime, perfdata))
 sys.exit(STATUS_OK)
