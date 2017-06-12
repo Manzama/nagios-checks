@@ -41,7 +41,7 @@ def sample():
 totaltime = (timeit.timeit(sample, number=args.samples)) * 1000
 averagetime = totaltime / args.samples
 
-perfdata="samples={}, totaltime={:.4}, averagetime={:.4}".format(args.samples, totaltime, averagetime)
+perfdata="samples={} totaltime={:.4} averagetime={:.4}".format(args.samples, totaltime, averagetime)
 
 if averagetime >= args.crit:
     print('CRITICAL REDIS ping time | {}'.format(perfdata))
