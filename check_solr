@@ -15,6 +15,7 @@ PINGURL='/admin/ping'
 
 TEMPLATE='SOLR {status}: {message} | {perfdata}'
 
+cachestats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='CACHE']/*"
 selectstats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='QUERYHANDLER']/lst[@name='/select']/lst[@name='stats']/*"
 updatestats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='QUERYHANDLER']/lst[@name='/update']/lst[@name='stats']/*"
 pingstats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='QUERYHANDLER']/lst[@name='/admin/ping']/lst[@name='stats']/*"
@@ -37,11 +38,14 @@ def xmlnodes_to_dict(xmlnodes):
       ret = {}
       idx = 0
       for item in xmlnodes:
+            if item.name not in ('long','int','float','double', 'bool', 'none', 'str'):
+                  continue
+
             idx += 1
-            name = str(idx)
-            attrib = item.hasProp('name')
-            if attrib:
-                  name = attrib.getContent()
+            name = item.prop('name')
+            if name is None:
+                  print str(item)
+                  name = str(idx)
 
             value = item.getContent()
             if item.name in ('long','int','float','double'):
@@ -57,10 +61,40 @@ def xmlnodes_to_dict(xmlnodes):
             ret[name] = value
       return ret
 
+
+def xmlnodes_cache_to_dict(xmlnodes):
+      ret = {}
+      for cache in xmlnodes:
+            if cache.name != 'lst':
+                  continue
+            attrib = cache.hasProp('name')
+            if attrib:
+                  cachename = attrib.getContent().replace('Cache','')
+            else:
+                  continue
+
+            for ch in cache.children:
+                  if ch.hasProp('name') and ch.hasProp('name').getContent() == 'stats':
+                        if cachename == 'field':
+                              # field cache is a weird format
+                              stats = {'entries_count':0, 'totsz_kb':0}
+                              for c in ch.children:
+                                    if c.prop('name') == 'entries_count':
+                                          stats['entries_count'] = int(c.getContent())
+                                    elif c.prop('name') == 'total_size':
+                                          stats['totsz_kb'] = float(c.getContent().split()[0])
+                        else:
+                              stats = xmlnodes_to_dict(ch.children)
+                        for v in stats:
+                              k = v.replace('cumulative_','c')
+                              ret[cachename+'_'+k] = stats[v]
+      return ret
+
+
 parser = argparse.ArgumentParser(description='Check the status of a Solr server.')
 parser.add_argument('-m', dest='module',
                     action='store',
-                    choices=['ping','select','update','pingstats'],
+                    choices=['ping','select','update','pingstats','cache'],
                     default='ping',
                     help='choose a module (default ping)')
 parser.add_argument('--host', dest='host',
@@ -76,6 +110,14 @@ parser.add_argument('--path', dest='path',
                     action='store',
                     default=URLROOT_DEFAULT,
                     help="Root of solr index stats pages.")
+parser.add_argument('--test', dest='testfile',
+                    action='store',
+                    default='',
+                    help='An XML file which overrides the web access.')
+
+parser.add_argument('--debug', dest='debug',
+                    action='store_true')
+
 args = parser.parse_args()
 
 solrhost=args.host
@@ -84,25 +126,30 @@ solrport=args.port
 xpath = {'ping': pingstatus_xpath,
          'select': selectstats_xpath,
          'update': updatestats_xpath,
+         'cache': cachestats_xpath,
          'pingstats': pingstats_xpath}[args.module]
-urlpath = STATSURL
-if args.module == 'ping':
-      urlpath = PINGURL
 
-urlpath = args.path + urlpath
-try:
-      code, content = fetch_url(solrhost, solrport, urlpath)
-except Exception, instance:
-      print TEMPLATE.format(status='CRITICAL',
-                            message="Failed to access SOLR. Exception: "+repr(instance),
-                            perfdata='')
-      sys.exit(STATUS_CRITICAL)
+if args.testfile:
+      content = file(args.testfile, 'r').read()
+else:
+      urlpath = STATSURL
+      if args.module == 'ping':
+            urlpath = PINGURL
 
-if code != 200:
-      print TEMPLATE.format(status='CRITICAL',
-                            message="Error from Tomcat: "+str(code)+' '+content,
-                            perfdata='')
-      sys.exit(STATUS_CRITICAL)
+      urlpath = args.path + urlpath
+      try:
+            code, content = fetch_url(solrhost, solrport, urlpath)
+      except Exception, instance:
+            print TEMPLATE.format(status='CRITICAL',
+                                  message="Failed to access SOLR. Exception: "+repr(instance),
+                                  perfdata='')
+            sys.exit(STATUS_CRITICAL)
+
+      if code != 200:
+            print TEMPLATE.format(status='CRITICAL',
+                                  message="Error from Tomcat: "+str(code)+' '+content,
+                                  perfdata='')
+            sys.exit(STATUS_CRITICAL)
 
 try:
       x = libxml2.parseDoc(content)
@@ -115,7 +162,15 @@ except libxml2.libxmlError, instance:
 
 ctx = x.xpathNewContext()
 statustree = ctx.xpathEval(xpath)
-statusvalues = xmlnodes_to_dict(statustree)
+
+if args.debug:
+      print statustree
+
+if args.module == 'cache':
+      # cache has a more complicated output than select
+      statusvalues = xmlnodes_cache_to_dict(statustree)
+else:
+      statusvalues = xmlnodes_to_dict(statustree)
 
 outstatus = 'OK'
 outexit = 0
