@@ -62,7 +62,7 @@ def xmlnodes_to_dict(xmlnodes):
       return ret
 
 
-def xmlnodes_cache_to_dict(xmlnodes):
+def xmlnodes_cache_to_dict(xmlnodes, prefix=None):
       ret = {}
       for cache in xmlnodes:
             if cache.name != 'lst':
@@ -71,6 +71,9 @@ def xmlnodes_cache_to_dict(xmlnodes):
             if attrib:
                   cachename = attrib.getContent().replace('Cache','')
             else:
+                  continue
+
+            if prefix and cachename != prefix:
                   continue
 
             for ch in cache.children:
@@ -97,6 +100,11 @@ parser.add_argument('-m', dest='module',
                     choices=['ping','select','update','pingstats','cache'],
                     default='ping',
                     help='choose a module (default ping)')
+parser.add_argument('--cache-prefix', dest='cache_prefix',
+                    action='store',
+                    default=None,
+                    help='Choose a cache prefix to filter on.'
+                    )
 parser.add_argument('--host', dest='host',
                     action='store',
                     default='localhost',
@@ -168,7 +176,7 @@ if args.debug:
 
 if args.module == 'cache':
       # cache has a more complicated output than select
-      statusvalues = xmlnodes_cache_to_dict(statustree)
+      statusvalues = xmlnodes_cache_to_dict(statustree, args.cache_prefix)
 else:
       statusvalues = xmlnodes_to_dict(statustree)
 
@@ -186,6 +194,8 @@ if args.module == 'ping':
             outmessage = 'ping ??? '+statusvalues['status']
 else:
       outmessage = 'status for '+args.module
+      if args.module == 'cache' and args.cache_prefix:
+            outmessage += '(' + args.cache_prefix + ')'
       for item in statusvalues:
             outperf += "'{label}'={value} ".format(label=item, value=statusvalues[item])
 
