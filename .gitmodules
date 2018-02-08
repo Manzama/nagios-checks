@@ -22,3 +22,6 @@
 [submodule "external/haproxy-nagios-scripts"]
 	path = external/haproxy-nagios-scripts
 	url = https://github.com/tatref/nagios-scripts
+[submodule "external/nagios-plugin-graylog2"]
+	path = external/nagios-plugin-graylog2
+	url = https://github.com/CygnusNetworks/nagios-plugin-graylog2
