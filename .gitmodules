@@ -25,3 +25,6 @@
 [submodule "external/nagios-plugin-graylog2"]
 	path = external/nagios-plugin-graylog2
 	url = https://github.com/CygnusNetworks/nagios-plugin-graylog2
+[submodule "external/devops_public"]
+	path = external/devops_public
+	url = https://github.com/DennyZhang/devops_public
