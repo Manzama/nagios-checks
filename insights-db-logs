@@ -1,0 +1,5 @@
+@searches = ({
+  tag => 'postgres',
+  logfile => '/var/log/postgresql/postgresql-9.6-main.log',
+  criticalpatterns => ['ERROR', 'FATAL', 'EOF detected', 'duplicate rows']
+})
