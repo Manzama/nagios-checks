@@ -1,8 +1,8 @@
 #!/bin/bash
 # meant to be run on a client machine to see outgoing connections
 
-WARN=200
-CRITICAL=500
+WARN=800
+CRITICAL=1000
 
 connections=$(sudo lsof |grep TCP | grep 6432 |wc -l)
 
