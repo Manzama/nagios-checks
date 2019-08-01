@@ -22,7 +22,7 @@ pingstats_xpath = "//response/lst[@name='solr-mbeans']/lst[@name='QUERYHANDLER']
 pingstatus_xpath = "//response/str[@name='status']"
 
 def fetch_url(host, port, path):
-      url = 'http://{host}:{port}{path}'.format(host=host, port=port, path=path)
+      url = 'http://{host}:{port}{path}?wt=xml'.format(host=host, port=port, path=path)
       try:
             print url
             u = urllib2.urlopen(url)
