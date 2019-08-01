@@ -1,7 +1,7 @@
 #!/bin/bash
 
-WARN=800
-CRITICAL=1000
+WARN=1200
+CRITICAL=2000
 
 connections=$(lsof -p $(cat /var/run/postgresql/pgbouncer.pid) |grep 6432 |wc -l)
 
