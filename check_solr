@@ -24,6 +24,7 @@ pingstatus_xpath = "//response/str[@name='status']"
 def fetch_url(host, port, path):
       url = 'http://{host}:{port}{path}'.format(host=host, port=port, path=path)
       try:
+            print url
             u = urllib2.urlopen(url)
       except urllib2.URLError:
             raise
@@ -160,6 +161,7 @@ else:
             sys.exit(STATUS_CRITICAL)
 
 try:
+      print content
       x = libxml2.parseDoc(content)
 except libxml2.libxmlError, instance:
       print TEMPLATE.format(status='CRITICAL',
