@@ -161,7 +161,7 @@ else:
             sys.exit(STATUS_CRITICAL)
 
 try:
-      print content
+      # print content
       x = libxml2.parseDoc(content)
 except libxml2.libxmlError, instance:
       print TEMPLATE.format(status='CRITICAL',
