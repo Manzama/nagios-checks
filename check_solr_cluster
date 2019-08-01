@@ -24,6 +24,7 @@ TEMPLATE='SOLR CLUSTER {status}: {message} | {perfdata}'
 def fetch_url(host, port, path):
       url = 'http://{host}:{port}{path}'.format(host=host, port=port, path=path)
       try:
+            print url
             u = urllib2.urlopen(url)
       except urllib2.URLError:
             raise
