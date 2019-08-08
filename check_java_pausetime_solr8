@@ -15,7 +15,7 @@ JAVATSFMT = '%Y-%m-%dT%H:%M:%S.%f+0000'
 PAUSETIMERE = re.compile('GC\(\d+\) Pause Young \(.+\) \(G1 Evacuation Pause\) \d+M->\d+M\(\d+M\) (.+)ms')
 DATETIMERE = re.compile('\[(.+)\]\[.+\] (.+)')
 TEMPLATE='JAVAGC {status}: {message} | {perfdata}'
-DEFAULTLOG='/var/log/tomcat7/catalina.out'
+DEFAULTLOG='/var/solr/logs/solr.log'
 
 parser = argparse.ArgumentParser(description="Check the java log for world pauses.")
 parser.add_argument('-l',
