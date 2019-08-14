@@ -58,8 +58,8 @@ if not os.access(args.logfile, os.F_OK):
                           perfdata='')
     sys.exit(STATUS_UNKNOWN)
 
-with os.popen('tail -r '+args.logfile) as inlog:
-#with os.popen('tac '+args.logfile) as inlog:
+#with os.popen('tail -r '+args.logfile) as inlog:
+with os.popen('tac '+args.logfile) as inlog:
     for line in inlog:
         m = DATETIMERE.match(line)
         if m:
