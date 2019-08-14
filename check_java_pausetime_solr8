@@ -12,7 +12,7 @@ STATUS_WARNING = 1
 STATUS_CRITICAL = 2
 STATUS_UNKNOWN = 3
 JAVATSFMT = '%Y-%m-%dT%H:%M:%S.%f+0000'
-PAUSETIMERE = re.compile('GC\(\d+\) Pause Young \(.+\) \(G1 Evacuation Pause\) \d+M->\d+M\(\d+M\) (.+)ms')
+PAUSETIMERE = re.compile('Total time for which application threads were stopped: (\d+.\d+) seconds.*')
 DATETIMERE = re.compile('\[(.+)\]\[.+\] (.+)')
 TEMPLATE='JAVAGC {status}: {message} | {perfdata}'
 DEFAULTLOG='/var/solr/logs/solr_gc.log'
@@ -58,8 +58,8 @@ if not os.access(args.logfile, os.F_OK):
                           perfdata='')
     sys.exit(STATUS_UNKNOWN)
 
+with os.popen('tail -r '+args.logfile) as inlog:
 #with os.popen('tac '+args.logfile) as inlog:
-with os.popen('tac '+args.logfile) as inlog:
     for line in inlog:
         m = DATETIMERE.match(line)
         if m:
@@ -71,7 +71,7 @@ with os.popen('tac '+args.logfile) as inlog:
             if timestamp > target_timestamp:
                 result = PAUSETIMERE.match(rest)
                 if result:
-                    pausetime = Decimal(result.group(1))/1000
+                    pausetime = Decimal(result.group(1))
                     pausetimes.append(pausetime)
             else:
                 break
