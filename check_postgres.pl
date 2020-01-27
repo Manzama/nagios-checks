@@ -5084,7 +5084,7 @@ sub check_hot_standby_delay {
     }
 
     ## On master
-    $SQL = q{SELECT pg_current_xlog_location() AS location};
+    $SQL = q{SELECT pg_current_wal_lsn() AS location};
     $info = run_command($SQL, { dbnumber => $master });
     for $db (@{$info->{db}}) {
         my $location = $db->{slurp}[0]{location};
