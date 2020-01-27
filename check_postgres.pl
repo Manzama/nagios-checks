@@ -5054,7 +5054,7 @@ sub check_hot_standby_delay {
     my ($moffset, $s_rec_offset, $s_rep_offset, $time_delta);
 
     ## On slave
-    $SQL = q{SELECT pg_last_xlog_receive_location() AS receive, pg_last_xlog_replay_location() AS replay};
+    $SQL = q{SELECT pg_last_wal_receive_lsn() AS receive, pg_last_xlog_replay_location() AS replay};
     if ($psql_version >= 9.1) {
         $SQL .= q{, COALESCE(ROUND(EXTRACT(epoch FROM now() - pg_last_xact_replay_timestamp())),0) AS seconds};
     }
