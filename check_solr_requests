@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+import json
+try:
+    import urllib2 as _urllib
+except:
+    import urllib.request as _urllib
+    import urllib.error
+    import urllib.parse
+STATUS_OK = 0
+STATUS_WARNING = 1
+STATUS_CRITICAL = 2
+
+URLROOT_DEFAULT='/solr'
+STATSURL ='/admin/metrics?group=core&indent=true&wt=json'
+PREFIX = "&prefix=QUERY./select.requestTimes"
+TEMPLATE='SOLR {status}: {message} | {perfdata}'
+
+def fetch_url(host, port, path):
+      url = 'http://{host}:{port}{path}'.format(host=host, port=port, path=path)
+      try:
+            print(url)
+            u = _urllib.urlopen(url)
+      except Exception as ex:
+            print(ex)
+
+      result = u.read()
+      u.close()
+      return 200, result
+
+
+parser = argparse.ArgumentParser(description='Check the status of a Solr server.')
+parser.add_argument('--host', dest='host',
+                    action='store',
+                    default='localhost',
+                    help='Server to connect to.')
+parser.add_argument('--port', dest='port',
+                    action='store',
+                    default='8983',
+                    type=int,
+                    help='Server port to connect to.')
+parser.add_argument('--path', dest='path',
+                    action='store',
+                    default=URLROOT_DEFAULT,
+                    help="Root of solr index stats pages.")
+args = parser.parse_args()
+
+solrhost = args.host
+solrport = args.port
+solrpath = args.path
+
+
+urlpath = STATSURL
+urlpath = solrpath + urlpath + PREFIX
+#print(urlpath)
+try:
+    code, content = fetch_url(solrhost, solrport, urlpath)
+except Exception as ex:
+    print(TEMPLATE.format(status='CRITICAL',
+                          message="Failed to access SOLR. Exception: ",
+                          perfdata=''))
+    sys.exit(STATUS_CRITICAL)
+
+if code != 200:
+    print(TEMPLATE.format(status='CRITICAL',
+                          message="Error from Tomcat: "+str(code)+' '+content,
+                          perfdata=''))
+    sys.exit(STATUS_CRITICAL)
+#print(code, content.decode())
+jcontent = json.loads(content.decode())
+#print(jcontent['metrics'])
+statusvalues = []
+for x in jcontent['metrics']:
+    for y in jcontent['metrics'][x]:
+        statusvalues = jcontent['metrics'][x][y]
+        break
+    break
+#print(statusvalues)
+#statusvalues = []
+outstatus = 'OK'
+outexit = 0
+outperf = ''
+outmessage = ''
+
+outmessage = 'status for select'
+for item in statusvalues:
+    outperf += "'{label}'={value} ".format(label=item, value=statusvalues[item])
+
+print(TEMPLATE.format(status=outstatus,
+                      message=outmessage,
+                      perfdata=outperf))
+sys.exit(outexit)
