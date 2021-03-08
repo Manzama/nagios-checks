@@ -21,7 +21,6 @@ TEMPLATE='SOLR {status}: {message} | {perfdata}'
 def fetch_url(host, port, path):
       url = 'http://{host}:{port}{path}'.format(host=host, port=port, path=path)
       try:
-            print(url)
             u = _urllib.urlopen(url)
       except Exception as ex:
             print(ex)
